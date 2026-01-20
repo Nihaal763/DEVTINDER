@@ -1,16 +1,38 @@
 const express = require("express");
-
+const connectDB = require("./config/database.js"); 
 const app = express();
-console.log(typeof(app));
-app.listen(7777 , ()=>{
+const User = require("./models/user.js")
+
+connectDB();
+
+connectDB().then(() => {
+    console.log("Database connected successfully");
+    app.listen(7777 , ()=>{
     console.log("Server has started successfully and is listening to you");
 });
-app.use("/Nihaal",(req,res)=>{
-    res.send("Nihaal route");
+}).catch((err)=>{
+    console.log("Failed to connect to the database");
 })
-app.use("/Pooja",(req,res)=>{
-    res.send("Pooja route");
+
+app.post("/signup" , (req , res)=> {
+    const userObj = {
+        firstName : "Sachin",
+        lastName : "Tendulkar",
+        emailId : "Sachin@gmail.com",
+        password : "Sachin  @12345"
+    }
+
+    const user = new User(userObj);
+
+    const m = user.save();
+    res.send("User added successfully");
 })
-app.use((req , res)=> {
-   res.send("Hello from the server to the client that is you");
-})
+
+
+
+
+// Connect to the mongoose cluster
+
+
+
+
