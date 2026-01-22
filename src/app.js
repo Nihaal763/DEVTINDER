@@ -14,18 +14,25 @@ connectDB().then(() => {
     console.log("Failed to connect to the database");
 })
 
-app.post("/signup" , (req , res)=> {
-    const userObj = {
-        firstName : "Sachin",
-        lastName : "Tendulkar",
-        emailId : "Sachin@gmail.com",
-        password : "Sachin  @12345"
+app.use(express.json());
+
+app.post("/signup" , async (req , res)=> {
+    // const userObj = {
+    //     firstName : "Sachin",
+    //     lastName : "Tendulkar",
+    //     emailId : "Sachin@gmail.com",
+    //     password : "Sachin  @12345"
+    // }
+      const user = new User(req.body);
+    
+    try{
+       const m = await user.save();
+       res.send("User added successfully");
     }
-
-    const user = new User(userObj);
-
-    const m = user.save();
-    res.send("User added successfully");
+    catch{      
+       res.status(401).send("Error saving the usrer");
+    }
+    console.log(req.body);
 })
 
 
