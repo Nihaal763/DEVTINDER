@@ -2,6 +2,11 @@ const express = require("express");
 const connectDB = require("./config/database.js"); 
 const app = express();
 const User = require("./models/user.js")
+const {validatesignupData} = require("./utils/validation.js");
+const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser"); 
+const jwt = require("jsonwebtoken");
+const {userAuth} = require("./middlewares/auth.js");
 
 connectDB();
 
@@ -15,36 +20,72 @@ connectDB().then(() => {
 })
 
 app.use(express.json());
+app.use(cookieParser());//Middleware for parsing the cookies
 
-app.patch("/user/:userId" , async(req , res) => {
-    const userId = req.params?.userId;
-    const data = req.body;
+
+app.get("/profile" , userAuth ,async(req , res) => {
+     // validate the token
     try{
-        const ALLOWED_UPDATES = ["photoUrl" , "about" , "gender" , "age" , "skills"];
-        const isUpdateAllowed = Object.keys(data).every((k) => {
-            return ALLOWED_UPDATES.includes(k);
-        })
-        if(!isUpdateAllowed){
-            throw new Error("Update not allowed");
-        }
-        if(data?.skills.length > 10){
-            throw new Error("Skills cannot be more than 10");
-        }
-        //Check for duplicates in database Homework TODO
-        const user = await User.findByIdAndUpdate(userId , data , {
-            returnDocument : "after" ,
-            runValidators : true 
-        });
-        console.log(user);
-        res.send("User added successfully");
-    }catch(err){
+        const user = req.user;
+        res.send(user);
+    }
+    catch(err){
         res.status(400).send("Update Failed" + " " +    err.message);
     }
-});
+})
+
+app.post("/login" , async (req, res) => {
+    try{
+        const {emailId , password} = req.body;
+        
+        const user = await User.findOne({emailId : emailId});
+        if(user){
+          const isPasswordValid = await bcrypt.compare(password , user.password);
+          if(!isPasswordValid){
+            throw new Error("Invalid Credentials");
+          }
+          else{
+            // Create a JWT token
+            const token = await jwt.sign({_id : user._id} , "DEV@Tinder$790" , {
+                expiresIn : "10s"
+            });
+           
+           // putting the token inside the cookie and sending it to the browser
+            res.cookie("token" , token , {
+                expires : new Date(Date.now() + 1 * 3600000)
+            });
+            res.send("Login successful");
+          }
+        }
+        else{
+            res.send("Invalid Credentials");
+        }
+    }
+    catch(err){
+        res.status(400).send("Update Failed" + " " +    err.message);
+    }
+})
 
 app.post("/signup" , async (req , res)=> {
-    const user = new User(req.body);
-    try{
+     try{
+        //Validation of the data
+        validatesignupData(req);
+        
+        const {firstName , lastName , emailId , password} = req.body;
+        // Encrypt the password
+        const passwordHash1 = await bcrypt.hash(password , 10);
+        const passwordHash2 = await bcrypt.hash(password , 1);
+        console.log(passwordHash1);
+        console.log(passwordHash2);
+        //Creating the new instance of the User Model
+
+        const user = new User({
+            firstName ,
+            lastName ,
+            emailId ,
+            password : passwordHash1
+        });
+   
        const m = await user.save();
        res.send("User added successfully");
     }
@@ -54,56 +95,12 @@ app.post("/signup" , async (req , res)=> {
     console.log(req.body);
 })
 
-app.get("/feed" , async (req ,res)=> {
-    try{
-        const user = await User.find({});
-        res.send(user);
-        if(user.length === 0){
-            res.send("No data of the users yet it starts from now");
-        }
-        else{
-            res.send(user);
-        }
-    }
-    catch{
-        res.status(400).send("cannot find a user with this details");   
-    }
-});
+app.post("/sendConnectionRequest" , userAuth , async(req , res) => {
+    const user = req.user;
+    console.log("is sending a request"); 
+    res.send(user.firstName + " is sending a request");
+})
 
-app.get("/user", async (req, res) => {
-  const userEmail = req.body.emailId;
-
-  try {
-    console.log(userEmail);
-    const user = await User.findOne({ emailId: userEmail });
-    if (!user) {
-      res.status(404).send("User not found");
-    } else {
-      res.send(user);
-    }
-
-    // const users = await User.find({ emailId: userEmail });
-    // if (users.length === 0) {
-    //   res.status(404).send("User not found");
-    // } else {
-    //   res.send(users);
-    // }
-  } catch (err) {
-    res.status(400).send("Something went wrong ");
-  }
-});
-
-app.delete("/user", async (req, res) => {
-  const userId = req.body.userId;
-  try {
-    const user = await User.findByIdAndDelete({ _id: userId });
-    //const user = await User.findByIdAndDelete(userId);
-
-    res.send("User deleted successfully");
-  } catch (err) {
-    res.status(400).send("Something went wrong ");
-  }
-});
 
 
 // Connect to the mongoose cluster
