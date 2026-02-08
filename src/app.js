@@ -69,7 +69,7 @@ app.post("/signup" , async (req , res)=> {
         //Validation of the data
         validatesignupData(req);
         
-        const {firstName , lastName , emailId , password} = req.body;
+        const {firstName , lastName , emailId , password , skills } = req.body;
         // Encrypt the password
         const passwordHash1 = await bcrypt.hash(password , 10);
         const passwordHash2 = await bcrypt.hash(password , 1);
@@ -81,7 +81,8 @@ app.post("/signup" , async (req , res)=> {
             firstName ,
             lastName ,
             emailId ,
-            password : passwordHash1
+            password : passwordHash1,
+            skills
         });
    
        const m = await user.save();
