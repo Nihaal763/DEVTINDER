@@ -1,0 +1,31 @@
+const mongoose = require("mongoose");
+const { Schema } = require("mongoose");
+
+const connectionRequest = new Schema({
+
+    fromUserId : {
+        type : Schema.Types.ObjectId ,
+        required : true
+    } ,
+    toUserId : {
+        type : Schema.Types.ObjectId ,
+        required : true
+    } ,
+    status : {
+        type : String ,
+        enum : {
+          values : ["ignored" , "interested" , "accepted" , "rejected"],
+          message : `{VALUE} is incorrect status type`
+        }
+    }
+},
+{
+    timestamps : true
+})
+
+connectionRequest.index({fromUserId : 1 , toUserId : 1});
+
+const connectionRequestModel = mongoose.model(" connections" , connectionRequest);
+
+module.exports = connectionRequestModel ;
+

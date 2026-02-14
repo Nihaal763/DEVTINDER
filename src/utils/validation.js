@@ -1,5 +1,15 @@
 const validator = require("validator")
 
+
+const validateEditprofileData = async (req)=> {
+  const editFields = ["firstName" , "lastName" , "photoUrl" , "gender" , "age" , "skills" , "about"];
+  const isEditAllowed = Object.keys(req.body).every((field) => 
+    {
+        editFields.includes(field);
+    })
+    return isEditAllowed;
+}
+
 const validatesignupData = (req) => {
   
     const {firstName , lastName , emailId , password} = req.body;
@@ -19,5 +29,6 @@ const validatesignupData = (req) => {
 }
 
 module.exports = {
-   validatesignupData
+   validatesignupData ,
+   validateEditprofileData
 }
