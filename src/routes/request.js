@@ -2,6 +2,7 @@ const express = require("express");
 const {userAuth} = require("../middlewares/auth.js");
 const User = require("../models/user.js");
 const connectionRequestModel = require("../models/connectionRequest.js");
+const { connections } = require("mongoose");
 
 const requestRouter = express.Router();
 
@@ -60,5 +61,41 @@ requestRouter.post("/request/send/:status/:userId" , userAuth , async(req , res)
     }
    
 
+})
+
+requestRouter.post("/request/review/:status/:requestId" , userAuth , async(req , res) => {
+    
+    try{
+         const loggedInuser = req.user;
+         //fromUSerId -> toUserId
+         //toUserID must be logged in
+         //if status === interested only then we should take action or else it should not display
+         //requestId should be valid
+         const {status , requestId } = req.params;
+         const allowedstatus = ["accepted" , "rejected"];
+         const isStatusValid = allowedstatus.includes(status);
+         if(!isStatusValid){
+            throw new Error("Status not allowed");
+         }
+
+
+         const connectionRequest = await connectionRequestModel.findOne({
+            _id : requestId ,   
+            toUserId : loggedInuser._id,
+            status : "interested" ,
+         })
+
+         if(!connectionRequest){
+            throw new Error("Connection request not found");
+         }
+         else{
+             connectionRequest.status = status;
+             const data = await connectionRequest.save();
+             res.json({"data" : data});
+         }
+    }
+    catch(err){
+        res.status(400).send("Error is " + err.message);
+    }
 })
 module.exports = requestRouter;
